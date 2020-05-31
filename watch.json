@@ -1,0 +1,12 @@
+{
+  "restart": {
+    "exclude": [
+      "^engine/",
+      "^world/"
+    ],
+    "include": [
+      "\\.js$",
+      "\\.json"
+    ]
+  }
+}
