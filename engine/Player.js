@@ -32,7 +32,6 @@ class Player extends Mob {
 	_init() {
 		this.on("changedLocation", async (oldLocation, newLocation) => {
 			if (Utility.defined(oldLocation)) {
-				console.log("test");
 				if (oldLocation.generated) await this.guildMember.roles.remove(oldLocation.role);
 			}
 			if (Utility.defined(newLocation)) {
@@ -42,7 +41,6 @@ class Player extends Mob {
 				}
 			}
 		});
-		if (Utility.defined(this.location) this.emit("changedLocation", undefined, this.location);
 	}
 }
 

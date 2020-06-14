@@ -17,7 +17,7 @@ class Item extends Base {
 		let newMob = this.world.mobs.resolve(mobResolvable);
 		let currentMob = this._mob;
 		if (currentMob == newMob) return;
-		let flag;
+		let flag = false;
 	    if (Utility.defined(currentMob)) {
 	      if(Utility.defined(currentMob.items.resolve(this))) {
 	      	this._mob = undefined;
@@ -41,7 +41,7 @@ class Item extends Base {
 		let currentLocation = this._location;
 	    let newLocation = this.world.locations.resolve(locationResolvable);
 	    if (currentLocation == newLocation) return;
-	    let flag;
+	    let flag = false;
 	    if (Utility.defined(currentLocation)) {
 	      if(Utility.defined(currentLocation.items.resolve(this))) {
 	      	this._location = undefined;

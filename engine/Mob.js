@@ -34,7 +34,7 @@ class Mob extends Base {
     let currentLocation = this._location;
     let newLocation = this.world.locations.resolve(locationResolvable);
     if (currentLocation == newLocation) return;
-    let flag;
+    let flag = false;
     if (Utility.defined(currentLocation)) {
       if(Utility.defined(currentLocation.mobs.resolve(this))) {
         this._location = undefined;
@@ -58,7 +58,7 @@ class Mob extends Base {
     let newBattle = this.world.battles.resolve(battleResolvable);
     let currentBattle = this._battle;
     if (currentBattle == newBattle) return;
-    let flag;
+    let flag = false;
     if (Utility.defined(currentBattle)) {
       if (Utility.defined(currentBattle.mobs.resolve(this))) {
         this._battle = undefined;
