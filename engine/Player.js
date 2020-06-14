@@ -1,5 +1,4 @@
 var Base = require("./Base");
-var Manager = require("./Manager");
 var Utility = require("./Utility");
 var Action = require("./Action");
 var CommandHandler = require("./CommandHandler");
@@ -15,18 +14,14 @@ class Player extends Mob {
 			iconURL: options.iconURL,
 			actionsPerRound: options.actionsPerRound
 		});
-		if (!Utility.defined(this.guildMember)) throw new ClassCreationError("No guildMember object specified.");
+		if (!Utility.defined(options.guildMember)) throw new ClassCreationError("No guildMember object specified.");
 		this.guildMember = this.guild.members.resolve(options.guildMember);
-
-		//Command handler setup
 		this.commandHandler = new CommandHandler(this.world, {
 			commands: {
 				"a": async (args) => {
-					this.takeAction(new Action(this.world, {
-						mob: this,
-						location: this.location
+					this.takeAction({
 						actionString: args.join(" ")
-					}));
+					});
 				}
 			},
 			_this: this,
@@ -36,12 +31,18 @@ class Player extends Mob {
 	}
 	_init() {
 		this.on("changedLocation", async (oldLocation, newLocation) => {
-			if (location.generated) {
-				await this.guildMember.roles.remove(oldLocation.role);
-				await this.guildMember.roles.add(newLocation.role);
-				if (this.guildMember.voice.channel != undefined) await this.guildMember.voice.setChannel(newLocation.voiceChannel);
+			if (Utility.defined(oldLocation)) {
+				console.log("test");
+				if (oldLocation.generated) await this.guildMember.roles.remove(oldLocation.role);
+			}
+			if (Utility.defined(newLocation)) {
+				if (newLocation.generated) {
+					await this.guildMember.roles.add(newLocation.role);
+					if (this.guildMember.voice.channel != undefined) await this.guildMember.voice.setChannel(newLocation.voiceChannel);
+				}
 			}
 		});
+		if (Utility.defined(this.location) this.emit("changedLocation", undefined, this.location);
 	}
 }
 

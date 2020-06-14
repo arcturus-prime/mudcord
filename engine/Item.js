@@ -16,18 +16,21 @@ class Item extends Base {
 	set mob(mobResolvable) {
 		let newMob = this.world.mobs.resolve(mobResolvable);
 		let currentMob = this._mob;
+		if (currentMob == newMob) return;
 		let flag;
 	    if (Utility.defined(currentMob)) {
 	      if(Utility.defined(currentMob.items.resolve(this))) {
-	        currentMob.item.remove(this);
+	      	this._mob = undefined;
+	        currentMob.items.remove(this);
 	        flag = true
 	      }
 	    }
 	    if (Utility.defined(newMob)) {
-	    if(!Utility.defined(newMob.items.resolve(this))) {
-	        newMob.items.add(this);
-	        flag = true;
-	      }
+		    if(!Utility.defined(newMob.items.resolve(this))) {
+		    	this._mob = newMob;
+		        newMob.items.add(this);
+		    	flag = true;
+		    }
 	    }
 		if (flag) this.emit("changedMobs", currentMob, newMob);
 	}
@@ -37,15 +40,18 @@ class Item extends Base {
 	set location(locationResolvable) {
 		let currentLocation = this._location;
 	    let newLocation = this.world.locations.resolve(locationResolvable);
+	    if (currentLocation == newLocation) return;
 	    let flag;
 	    if (Utility.defined(currentLocation)) {
 	      if(Utility.defined(currentLocation.items.resolve(this))) {
+	      	this._location = undefined;
 	        currentLocation.items.remove(this);
 	        flag = true
 	      }
 	    }
 	    if (Utility.defined(newLocation)) {
 	    if(!Utility.defined(newLocation.items.resolve(this))) {
+	    	this._location = newLocation;
 	        newLocation.items.add(this);
 	        flag = true;
 	      }

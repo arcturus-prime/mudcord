@@ -20,8 +20,8 @@ class Mob extends Base {
     this._init(options);
   }
   _init(options) {
-    this.world.mobs._add(this);
-    this.actions.on("add", (action) => {
+    this.world.mobs.add(this);
+    this.actions._emitter.on("add", (action) => {
       action.mob = this;
       this.emit("actionTaken", action);
     })
@@ -33,15 +33,18 @@ class Mob extends Base {
   set location(locationResolvable) {
     let currentLocation = this._location;
     let newLocation = this.world.locations.resolve(locationResolvable);
+    if (currentLocation == newLocation) return;
     let flag;
     if (Utility.defined(currentLocation)) {
       if(Utility.defined(currentLocation.mobs.resolve(this))) {
+        this._location = undefined;
         currentLocation.mobs.remove(this);
-        flag = true
+        flag = true;
       }
     }
     if (Utility.defined(newLocation)) {
-    if(!Utility.defined(newLocation.mobs.resolve(this))) {
+      if(!Utility.defined(newLocation.mobs.resolve(this))) {
+        this._location = newLocation;
         newLocation.mobs.add(this);
         flag = true;
       }
@@ -54,20 +57,22 @@ class Mob extends Base {
   set battle(battleResolvable) {
     let newBattle = this.world.battles.resolve(battleResolvable);
     let currentBattle = this._battle;
+    if (currentBattle == newBattle) return;
     let flag;
     if (Utility.defined(currentBattle)) {
       if (Utility.defined(currentBattle.mobs.resolve(this))) {
+        this._battle = undefined;
         currentBattle.mobs.remove(this);
         flag = true;
       }
     }
     if (Utility.defined(newBattle)) {
       if (!Utility.defined(newBattle.mobs.resolve(this))) {
+        this._battle = newBattle;
         newBattle.mobs.add(this);
         flag = true
       }
     }
-    this._battle = newBattle;
     if(flag) this.emit("changedBattle", currentBattle, newBattle);
   }
   get battle() {
@@ -97,6 +102,9 @@ class Mob extends Base {
     this.actions.add(action);
     this.location.actions.add(action);
     return action;
+  }
+  delete () {
+    this.world.mobs.remove(this);
   }
 }
 module.exports = Mob;

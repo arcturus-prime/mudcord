@@ -19,18 +19,18 @@ class Battle extends Base {
   }
   _init(options) {
     this.world.battles.add(this);
-    this.mobs.on("add", (mob) => {
+    this.mobs._emitter.on("add", (mob) => {
       mob.battle = this;
       this.emit("mobEntered", this);
     });
-    this.mobs.on("remove", (mob) => {
+    this.mobs._emitter.on("remove", (mob) => {
       mob.battle = undefined;
       this.emit("mobLeft", this);
     });
-    this.locations.on("add", (location) => {
+    this.locations._emitter.on("add", (location) => {
       if(!Utility.exists(location.battles.resolve(this))) location.battles.add(this);
     });
-    this.locations.on("remove", (location) => {
+    this.locations._emitter.on("remove", (location) => {
       if(Utility.exists(location.battles.resolve(this))) location.battles.remove(this);
     });
     for (let i = options.mobs.length - 1; i >= 0; i--) {

@@ -43,21 +43,21 @@ class Location extends Base {
 	}
 	_init() {
 		this.world.locations.add(this);
-		this.mobs.on("add", (mob) => {
+		this.mobs._emitter.on("add", (mob) => {
 			mob.location = this;
 			this.emit("mobEntered", mob);
 		});
-		this.mobs.on("remove", (mob) => {
+		this.mobs._emitter.on("remove", (mob) => {
 			mob.location = undefined;
 			this.emit("mobLeft", mob);
 		});
-		this.battles.on("add", (battle) => {
+		this.battles._emitter.on("add", (battle) => {
 			if(!Utility.exists(battle.locations.resolve(this))) battle.locations.add(this);
 		});
-		this.battles.on("remove", (battle) => {
+		this.battles._emitter.on("remove", (battle) => {
 			if(Utility.exists(battle.locations.resolve(this))) battle.locations.remove(this);
 		});
-		this.actions.on("add", (action) => {
+		this.actions._emitter.on("add", (action) => {
 			action.location = this;
 			this.emit("actionTaken", action);
 		});

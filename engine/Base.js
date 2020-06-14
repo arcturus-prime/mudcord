@@ -6,7 +6,7 @@ class Base extends EventEmitter {
   constructor(world) {
     super();
     if (!Utility.defined(world)) throw new ClassCreationError("No world object specified.");
-    this.id = Utility.randomID(64);
+    this.id = Utility.randomID(18);
     this.world = world;
   }
 }

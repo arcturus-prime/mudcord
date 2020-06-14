@@ -10,10 +10,8 @@ class Monster extends Mob {
 			battle: options.battle,
 			iconURL: options.iconURL
 		});
-		if (Utility.defined(this.playerOwner)) throw new ClassCreationError("No playerOwner object specified.")
+		if (Utility.defined(options.playerOwner)) throw new ClassCreationError("No playerOwner object specified.")
 		this.playerOwner = this.world.mobs.resolve(options.playerOwner);
-
-		//Command handler setup
 		this.commandHandler = new CommandHandler(this.world, {
 			commands: {
 				"ma": async (args) => {

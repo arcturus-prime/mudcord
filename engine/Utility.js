@@ -13,7 +13,7 @@ class Utility {
 			setTimeout(resolve, time);
 		})
 	}
-	static async randomID(length) {
+	static randomID(length) {
 		let buffer = Crypto.randomBytes(length);
 		return buffer.toString("hex");
 	}

@@ -3,21 +3,26 @@ var Discord = require("discord.js");
 var EventEmitter = require("events");
 var Utility = require("./Utility");
 var ClassCreationError = require("./ClassCreationError");
+var Location = require("./Location");
+var Mob = require("./Mob");
+var Action = require("./Action");
+var Battle = require("./Battle");
+var Item = require("./Item");
 
 class World extends EventEmitter {
 	constructor(options) {
 		super();
-		this.id = Utility.randomID(64);
+		this.id = Utility.randomID(18);
 		this.guild;
 		this.bot;
-		if (!Utility.defined(this.botPrefix)) throw new ClassCreationError("No botPrefix specified.");
+		if (!Utility.defined(options.bot.prefix)) throw new ClassCreationError("No prefix specified in bot object.");
 		this.botPrefix = options.bot.prefix;
 		this.name = options.name;
-		this.locations = new Collection();
-		this.mobs = new Collection();
-		this.actions = new Collection();
-		this.battles = new Collection();
-		this.items = new Collection();
+		this.locations = new Collection(Location);
+		this.mobs = new Collection(Mob);
+		this.actions = new Collection(Action);
+		this.battles = new Collection(Battle);
+		this.items = new Collection(Item);
 		this._init(options);
 	}
 	async _init(options) {
@@ -36,14 +41,14 @@ class World extends EventEmitter {
 		this.emit("ready");
 	}
 	async generateAll() {
-		for (location of this.locations) {
-			await location.generate();
+		for (let location of this.locations) {
+			await location[1].generate();
 		};
 		this.emit("generated");
 	}
 	async ungenerateAll() {
-		for (location of this.locations) {
-			await location.destroy();
+		for (let location of this.locations) {
+			await location[1].destroy();
 		}
 		this.emit("ungenerated");
 	}
