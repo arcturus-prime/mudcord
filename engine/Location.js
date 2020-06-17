@@ -14,7 +14,7 @@ class Location extends Base {
 		this._mobs = new Collection(Mob);
 		this._actions = new Collection(Action);
 		this._items = new Collection(Item);
-		this._battles = new Collection(Battle);
+		this._battle = this.world.battles.resolve(options.battle);
 		this._role;
 		this._category;
 		this._textChannel;
@@ -50,8 +50,8 @@ class Location extends Base {
 	get items() {
 		return this._items;
 	}
-	get battles() {
-		return this._battles;
+	get battle() {
+		return this._battle;
 	}
 	get role() {
 		return this._role;
@@ -107,6 +107,7 @@ class Location extends Base {
 	//"build" function
 	async init() {
 		this.world.locations.add(this);
+		this.battle._location = this;
 	}
 	//methods
 	async generate() {
@@ -186,6 +187,20 @@ class Location extends Base {
 		this.generated = false;
 		await this.emit("ungenerated");
 	}
+	async _registerAction(action) {
+		action._location = this;
+		this.actions.add(action);
+		await this.textChannel.send({
+	      embed: {
+	        author: {
+	          name: action.mob.name,
+	          iconURL: action.mob.iconURL
+	        },
+	        description: action.actionString
+	      }
+	    });
+	    await this.emit("actionTaken", action);
+	}
 	async attach(location, direction) {
 		if (!Utility.defined(location) || !Utility.defined(direction)) {
 			throw new Error(`Requires two arguments`);
@@ -211,7 +226,7 @@ class Location extends Base {
 				parent: this.category,
 				position: 4
 			});
-			await Location.bindVCButtonToLocation(this[buttonString], this[`_${direction}`]);
+			await Location._bindVCButtonToLocation(this[buttonString], this[`_${direction}`]);
 		}
 	}
 	async message(message) {
@@ -236,7 +251,7 @@ class Location extends Base {
 		await this.north.attach(null, "south");
 		this.world.locations.remove(this);
 	}
-	static async bindVCButtonToLocation(voiceChannel, location) {
+	static async _bindVCButtonToLocation(voiceChannel, location) {
 		if (!Utility.defined(location) || !Utility.defined(voiceChannel)) {
 			throw new Error(`Requires two arguments`);
 		}

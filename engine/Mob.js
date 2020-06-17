@@ -12,7 +12,7 @@ class Mob extends Base {
     this._items = new Collection(Item);
     this.iconURL = options.iconURL;
     this.actionsPerRound = Utility.defined(options.actionsPerRound) ? 1 : options.actionsPerRound;
-    this.actionsTakenThisRound;
+    this._actionsTakenThisRound;
     this._location = this.world.locations.resolve(options.location);
     this._battle = this.world.battles.resolve(options.battle);
   }
@@ -32,55 +32,58 @@ class Mob extends Base {
   get items() {
     return this._items;
   }
+  get actionsTakenThisRound() {
+  	return this._actionsTakenThisRound;
+  }
   //"build" function
   async init() {
   	this.world.mobs.add(this);
-  	if(Utility.defined(this.battle)) this.battle.mobs.add(this);
-  	if(Utility.defined(this.location)) this.location.mobs.add(this);
+  	if(Utility.defined(this.location)) await this.move(this.location);
+  	if(Utility.defined(this.battle)) await this.battle.addMob(this);
   	return this;
   }
   async action(actionString) {
+  	if (!Utility.defined(actionString)) throw new Error("Missing required option: actionString");
     let action = new Action(this.world, {
     	mob: this.mob,
-    	location: this.location,
     	actionString: actionString
     });
-    await action.init();
+    action.init();
+    this.actions.add(action);
     if (Utility.defined(this.battle)) {
-      let registered = await this.battle._registerAction(action);
-      if (!registered) {
-        await action.delete();
-        return;
-      }
+    	if (!Utility.defined(this.battle.mobs.resolve(this.mob)) && this.actionsTakenThisRound == this.actionsPerRound) {
+    		await this.battle._registerAction(action);
+    	}
     }
-    await this.location.textChannel.send({
-      embed: {
-        author: {
-          name: this.name,
-          iconURL: this.iconURL
-        },
-        description: action.actionString
-        }
-    });
+    await this.location._registerAction(action);
     await this.emit("actionTaken", action);
-    await action.location.emit("actionTaken", action);
   }
   async move(locationResolvable) {
   	let newLocation = this.world.locations.resolve(locationResolvable);
+  	if (!Utility.defined(newLocation)) throw new Error("Requires a LocationResolvable");
   	let currentLocation = this.location;
-  	if (currentLocation.generated) {
-  		await currentLocation.textChannel.send({
-			embed: {
-				description: `${mob.name} leaves.`
-			}
-		})
+  	if (Utility.defined(currentLocation)) {
+  		if (!Utility.defined(this.battle)) await this.battle.removeMob(this);
+  		currentLocation.mobs.remove(this);
+  		this._location = undefined;
+  		for (item of this.items) {
+	  		item[1].location.items.remove(item[1]);
+			item[1]._location = undefined;
+		}
+	  	if (currentLocation.generated) {
+	  		await currentLocation.textChannel.send({
+				embed: {
+					description: `${mob.name} leaves.`
+				}
+			})
+	  	}
+	  	await currentLocation.emit("mobLeft", mob);
   	}
-  	await currentLocation.emit("mobLeft", mob);
+  	newLocation.mobs.add(this);
   	this._location = newLocation;
   	for (item of this.items) {
-  		item[1].location.items.remove(item[1]);
-		item[1]._location = newLocation;
 		item[1].location.items.add(item[1]);
+		item[1]._location = newLocation;
 	}
   	if (location.generated) {
 		await this.textChannel.send({
