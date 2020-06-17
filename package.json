@@ -16,6 +16,7 @@
   ],
   "author": "arcturus-prime",
   "dependencies": {
+    "asynchronous-emitter": "^0.1.0",
     "discord.js": "^12.2.0"
   },
   "devDependencies": {

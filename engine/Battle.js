@@ -8,37 +8,47 @@ var Mob = require("./Mob");
 class Battle extends Base {
   constructor(world, options) {
     super(world);
-    this.locations = new Collection(Location);
+    this._locations = new Collection(Location);
     this.name = options.name;
-    this.mobs = new Collection(Mob);
-    this.currentRound = 0;
-    this.actions = new Collection(Action);
+    this._mobs = new Collection(Mob);
+    this._currentRound = 0;
+    this._actions = new Collection(Action);
     this.roundTimeLimit = Utility.defined(options.roundTimeLimit) ? 60 : options.roundTimeLimit;
     this._currentTimeout;
-    this._init(options);
   }
-  _init(options) {
-    this.world.battles.add(this);
-    this.mobs._emitter.on("add", (mob) => {
-      mob.battle = this;
-      this.emit("mobEntered", this);
-    });
-    this.mobs._emitter.on("remove", (mob) => {
-      mob.battle = undefined;
-      this.emit("mobLeft", this);
-    });
-    this.locations._emitter.on("add", (location) => {
-      if(!Utility.exists(location.battles.resolve(this))) location.battles.add(this);
-    });
-    this.locations._emitter.on("remove", (location) => {
-      if(Utility.exists(location.battles.resolve(this))) location.battles.remove(this);
-    });
-    for (let i = options.mobs.length - 1; i >= 0; i--) {
-      this.mobs.add(options.mobs[i]);
-    }
-  }
+  //Controlling object access
   get guild() {
     return this.world.guild;
+  }
+  get locations() {
+    return this._locations;
+  }
+  get mobs() {
+    return this._mobs;
+  }
+  get currentRound() {
+    return this._currentRound;
+  }
+  get actions() {
+    return this._actions;
+  }
+  //"build" function
+  async init() {
+    this.mobs._emitter.on("add", async (mob) => {
+      mob.battle = this;
+      await this.emit("mobEntered", this);
+    });
+    this.mobs._emitter.on("remove", async (mob) => {
+      mob.battle = undefined;
+      await this.emit("mobLeft", this);
+    });
+    this.locations._emitter.on("add", async (location) => {
+      if(!Utility.exists(location.battles.resolve(this))) await location.battles.add(this);
+    });
+    this.locations._emitter.on("remove", async (location) => {
+      if(Utility.exists(location.battles.resolve(this))) await location.battles.remove(this);
+    });
+    await this.world.battles.add(this);
   }
 
   //methods

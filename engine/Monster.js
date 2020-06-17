@@ -1,6 +1,5 @@
 var Mob = require("./Mob");
 var Utility = require("./Utility");
-var ClassCreationError = require("./ClassCreationError");
 
 class Monster extends Mob {
 	constructor(world, options) {
@@ -10,9 +9,18 @@ class Monster extends Mob {
 			battle: options.battle,
 			iconURL: options.iconURL
 		});
-		if (Utility.defined(options.playerOwner)) throw new ClassCreationError("No playerOwner object specified.")
+		if (Utility.defined(options.playerOwner)) throw new Error("No playerOwner object specified.")
 		this.playerOwner = this.world.mobs.resolve(options.playerOwner);
-		this.commandHandler = new CommandHandler(this.world, {
+		this._commandHandler;
+	}
+
+	get commandHandler() {
+		return this._commandHandler;
+	}
+
+	async init() {
+		await super.init()
+		this._commandHandler = new CommandHandler(this.world, {
 			commands: {
 				"ma": async (args) => {
 					if (args[0] == this.id) {
@@ -27,6 +35,7 @@ class Monster extends Mob {
 			_this: this,
 			condition: message => message.member == this.playerOwner.guildMember
 		});
+		return this;
 	}
 }
 module.exports = Monster;

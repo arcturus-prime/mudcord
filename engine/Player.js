@@ -3,7 +3,6 @@ var Utility = require("./Utility");
 var Action = require("./Action");
 var CommandHandler = require("./CommandHandler");
 var Mob = require("./Mob");
-var ClassCreationError = require("./ClassCreationError");
 
 class Player extends Mob {
 	constructor(world, options) {
@@ -14,22 +13,17 @@ class Player extends Mob {
 			iconURL: options.iconURL,
 			actionsPerRound: options.actionsPerRound
 		});
-		if (!Utility.defined(options.guildMember)) throw new ClassCreationError("No guildMember object specified.");
+		if (!Utility.defined(options.guildMember)) throw new Error("No guildMember object specified.");
 		this.guildMember = this.guild.members.resolve(options.guildMember);
-		this.commandHandler = new CommandHandler(this.world, {
-			commands: {
-				"a": async (args) => {
-					this.takeAction({
-						actionString: args.join(" ")
-					});
-				}
-			},
-			_this: this,
-			condition: message => message.member.id === this.guildMember.id
-		});
-		this._init()
+		this._commandHandler
 	}
-	_init() {
+
+	get commandHandler() {
+		return this._commandHandler;
+	}
+
+	async init() {
+		await super.init();
 		this.on("changedLocation", async (oldLocation, newLocation) => {
 			if (Utility.defined(oldLocation)) {
 				if (oldLocation.generated) await this.guildMember.roles.remove(oldLocation.role);
@@ -41,6 +35,16 @@ class Player extends Mob {
 				}
 			}
 		});
+		this._commandHandler = new CommandHandler(this.world, {
+			commands: {
+				"a": async (args) => {
+					await this.action(args.join(" "));
+				}
+			},
+			_this: this,
+			condition: message => message.member.id === this.guildMember.id
+		});
+		return this;
 	}
 }
 

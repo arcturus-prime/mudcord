@@ -2,9 +2,9 @@ var Crypto = require('crypto');
 
 class Utility {
 	static defined(value) {
-		if (value == undefined) {
+		if (value === undefined) {
 			return false;
-		} else if (value != undefined) {
+		} else if (value !== undefined) {
 			return true
 		}
 	}
@@ -15,7 +15,7 @@ class Utility {
 	}
 	static randomID(length) {
 		let buffer = Crypto.randomBytes(length);
-		return buffer.toString("hex");
+		return parseInt(buffer.toString("hex"), 10).toString();
 	}
 }
 
