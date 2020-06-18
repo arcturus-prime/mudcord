@@ -1,33 +1,34 @@
 var Collection = require("./Collection");
 var Discord = require("discord.js");
-var EventEmitter = require("events");
+var AsyncEventEmitter = require('asynchronous-emitter');
 var Utility = require("./Utility");
-var ClassCreationError = require("./ClassCreationError");
 var Location = require("./Location");
 var Mob = require("./Mob");
 var Action = require("./Action");
 var Battle = require("./Battle");
 var Item = require("./Item");
 
-class World extends EventEmitter {
+class World extends AsyncEventEmitter {
 	constructor(options) {
 		super();
 		this.id = Utility.randomID(18);
-		this.guild;
 		this.bot;
-		if (!Utility.defined(options.bot.prefix)) throw new ClassCreationError("No prefix specified in bot object.");
+		if (!Utility.defined(options.bot.prefix)) throw new Error("No prefix specified in bot object");
+		if (!Utility.defined(options.bot.token)) throw new Error("No token specified in bot object");
 		this.botPrefix = options.bot.prefix;
+		this.botToken = options.bot.token;
+		this.guild = options.guild;
 		this.name = options.name;
 		this.locations = new Collection(Location);
 		this.mobs = new Collection(Mob);
 		this.actions = new Collection(Action);
 		this.battles = new Collection(Battle);
 		this.items = new Collection(Item);
-		this._init(options);
 	}
-	async _init(options) {
+	async init() {
 		let Bot = new Discord.Client();
-		Bot.login(options.bot.token);
+		Bot.login(this.botToken);
+		debugger;
 		await new Promise((resolve, reject) => {
 			Bot.on("ready", () => {
 				console.log("Connected");
@@ -37,20 +38,33 @@ class World extends EventEmitter {
 			});
 		});
 		this.bot = Bot;
-		this.guild = Bot.guilds.resolve(options.guild);
-		this.emit("ready");
+		this.guild = Bot.guilds.resolve(this.guild);
+		if (this.guild == null) throw new Error ("Guild not found");
 	}
 	async generateAll() {
 		for (let location of this.locations) {
 			await location[1].generate();
 		};
-		this.emit("generated");
+		await this.emit("generated");
 	}
 	async ungenerateAll() {
 		for (let location of this.locations) {
-			await location[1].destroy();
+			await location[1].ungenerate();
 		}
-		this.emit("ungenerated");
+		await this.emit("ungenerated");
+	}
+	async createLocation(name, options) {
+		let location = new Location(this, Utility.defined(options) ? {
+			name: name,
+			up: options.up,
+			down: options.down,
+			north: options.north,
+			south: options.south,
+			east: options.east,
+			west: options.west
+		} : { name: name })
+		location.init();
+		return location;
 	}
 }
 

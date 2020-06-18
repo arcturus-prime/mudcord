@@ -2,76 +2,124 @@ var Base = require("./Base");
 var Collection = require("./Collection");
 var Action = require("./Action");
 var Utility = require("./Utility");
-var Location = require("./Location");
 var Mob = require("./Mob");
 
 class Battle extends Base {
-  constructor(world, options) {
-    super(world);
-    this.locations = new Collection(Location);
-    this.name = options.name;
-    this.mobs = new Collection(Mob);
-    this.currentRound = 0;
-    this.actions = new Collection(Action);
-    this.roundTimeLimit = Utility.defined(options.roundTimeLimit) ? 60 : options.roundTimeLimit;
-    this._currentTimeout;
-    this._init(options);
-  }
-  _init(options) {
-    this.world.battles.add(this);
-    this.mobs._emitter.on("add", (mob) => {
-      mob.battle = this;
-      this.emit("mobEntered", this);
-    });
-    this.mobs._emitter.on("remove", (mob) => {
-      mob.battle = undefined;
-      this.emit("mobLeft", this);
-    });
-    this.locations._emitter.on("add", (location) => {
-      if(!Utility.exists(location.battles.resolve(this))) location.battles.add(this);
-    });
-    this.locations._emitter.on("remove", (location) => {
-      if(Utility.exists(location.battles.resolve(this))) location.battles.remove(this);
-    });
-    for (let i = options.mobs.length - 1; i >= 0; i--) {
-      this.mobs.add(options.mobs[i]);
-    }
-  }
-  get guild() {
-    return this.world.guild;
-  }
+	constructor(world, options) {
+		super(world);
+		this._location = this.world.locations.resolve(options.location);
+		this.name = options.name;
+		this._mobs = new Collection(Mob);
+		this._currentRound = 0;
+		this._actions = new Collection(Action);
+		this.roundTimeLimit = Utility.defined(options.roundTimeLimit) ? 60 : options.roundTimeLimit;
+		this._currentTimeout;
+		this._started = false;
+	}
+	//Controlling object access
+	get started() {
+		return this._started;
+	}
+	get guild() {
+		return this.world.guild;
+	}
+	get location() {
+		return this._location;
+	}
+	get mobs() {
+		return this._mobs;
+	}
+	get currentRound() {
+		return this._currentRound;
+	}
+	get actions() {
+		return this._actions;
+	}
+	//"build" function
+	init() {
+		this.world.battles.add(this);
+		if (Utility.defined(this.location)) this.location._battle = this;
+		return this;
+	}
+	//methods
+	async start() {
+		for (let mob of this.mobs) {
 
-  //methods
-  start() {
-    this._currentTimeout = setTimeout(this.endRound, this.roundTimeLimit);
-    this.emit("started");
-  }
-  delete() {
-    this.world.battles.remove(this);
-  }
-  async _registerAction(actionResolvable) {
-    let action = this.world.actions.resolve(actionResolvable);
-    let mob = this.world.mobs.resolve(action.mob);
-    if (!Utility.defined(this.locations.resolve(action.location))) return false;
-    if (!Utility.defined(this.mobs.resolve(mob))) return false;
-    if (this.mob.actionsTakenThisRound == this.mob.actionsPerRound) return false;
-    this.actions._add(action);
-    this.mob.actionsTakenThisRound++;
-    this.emit("actionTaken", action);
-    if (this.mobs.contents.array().every(mob => mob.actionsTakenThisRound == mob.actionsPerRound)) {
-      await this._endRound();
-    }
-    return true;
-  }
-  async _endRound() {
-    clearTimeout(this._currentTimeout);
-    for (let x in this.mobs.contents) {
-      this.mobs.contents[x].takenActionThisRound = false;
-    }
-    this.currentRound++;
-    this.emit("roundEnd");
-    this._currentTimeout = setTimeout(this._endRound, this.roundTimeLimit);
-  }
+		}
+		this._currentTimeout = setTimeout(this._endRound, this.roundTimeLimit);
+		this._started = true;
+		await this.emit("started");
+	}
+	async addMob(mobResolvable) {
+		let mob = this.world.mobs.resolve(mobResolvable);
+		if (!Utility.defined(mob)) throw new Error("Missing required option: mobResolvable");
+		if (mob.location != this.location) await mob.move(this.location);
+		this.mobs.add(mob);
+		mob._battle = this;
+		if (this.started) {
+			await this.location.textChannel.send({
+				embed: {
+					author: {
+						name: mob.name,
+						iconURL: mob.iconURL
+					},
+					description: `joined the battle.`
+				}
+			});
+		}
+		await this.emit("mobJoined", mob);
+	}
+	async removeMob(mobResolvable) {
+		let mob = this.world.mobs.resolve(mobResolvable);
+		if (!Utility.defined(mob)) throw new Error("Missing required option: mobResolvable");
+		this.mobs.remove(mob);
+		mob._battle = undefined;
+		if (this.started) {
+			await this.location.textChannel.send({
+				embed: {
+					author: {
+						name: mob.name,
+						iconURL: mob.iconURL
+					},
+					description: `left the battle.`
+				}
+			});
+		}
+		await this.emit("mobLeft", mob);
+	}
+	async delete() {
+		for (let mob of this.mobs) {
+			mob[1]._battle = undefined;
+		}
+		for (let action of this.actions) {
+			action[1]._battle = undefined;
+		}
+		this.mobs.remove();
+		this.actions.remove();
+		this.location._battle = undefined;
+		this._location = undefined;
+		this.world.battles.remove(this);
+		this._deleted = true;
+	}
+	async _registerAction(action) {
+		action._battle = this;
+		this.actions.add(action);
+		action.mob._actionsTakenThisRound++;
+		await this.emit("actionTaken", action);
+		if (this.mobs.every((value, key, map) => value.actionsTakenThisRound == value.actionsPerRound)) {
+			await this._endRound();
+		}
+		return true;
+	}
+	async _endRound() {
+		clearTimeout(this._currentTimeout);
+		for (let mob of this.mobs) {
+			mobs[1].takenActionThisRound = false;
+		}
+		this.currentRound++;
+		await this.emit("roundEnd");
+		this._currentTimeout = setTimeout(this._endRound, this.roundTimeLimit);
+	}
 }
 
 module.exports = Battle;

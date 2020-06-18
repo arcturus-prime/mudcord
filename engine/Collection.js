@@ -1,41 +1,34 @@
-var EventEmitter = require("events");
-
 class Collection extends Map {
 	constructor(type) {
 		super();
 		this.type = type;
-		this._emitter = new EventEmitter();
 	}
 	add(objects) {
 		if (typeof objects == "array") {
 			for (let x = 0; x < objects; x++) {
 				if (!(objects[x] instanceof this.type)) throw new TypeError(`Collection type is ${this.type.constructor.name } but got ${objects[x].constructor.name}.`);
 				this.set(objects[x].id, objects[x]);
-				this._emitter.emit("add", this.resolve(objects[x]));
 			}
 		} else if (typeof objects == "object") {
 			if (objects instanceof Collection) {
 				objects.forEach((value, key, map) => {
 					if (!(value instanceof this.type)) throw new TypeError(`Collection type is ${this.type.constructor.name } but got ${value.constructor.name}.`);
 					this.set(key, value);
-					this._emitter.emit("add", this.resolve(value));
 				});
 			} else {
 				this.set(objects.id, objects);
-				this._emitter.emit("add", this.resolve(objects));
 			}
 		}
-		return this;
 	}
 	remove(objectResolvables) {
 		if (typeof objectResolvables == "array") {
 			for (let x = 0; x < objectResolvables; x++) {
 				if (typeof objectResolvables[x] == "object") {
 					if (!(objectResolvables[x] instanceof this.type)) throw new TypeError(`Collection type is ${this.type.constructor.name } but got ${objectResolvables[x].constructor.name}.`);
-					this._emitter.emit("remove", this.resolve(objectResolvables[x]));
+					let object = this.resolve(objectResolvables[x]);
 					this.delete(objectResolvables[x].id);
 				} else if (typeof objectResolvables[x] == "string") {
-					this._emitter.emit("remove", this.resolve(objectResolvables[x]));
+					let object = this.resolve(objectResolvables[x]);
 					this.delete(objectResolvables[x]);
 				}
 			}
@@ -43,19 +36,22 @@ class Collection extends Map {
 			if (objectResolvables instanceof Collection) {
 				objectResolvables.forEach((value, key, map) => {
 					if (!(value instanceof this.type)) throw new TypeError(`Collection type is ${this.type.constructor.name } but got ${value.constructor.name}.`);
-					this._emitter.emit("remove", this.resolve(value));
+					let object = this.resolve(value);
 					this.delete(key);
 				});
 			} else {
 				if (!(objectResolvables instanceof this.type)) throw new TypeError(`Collection type is ${this.type.constructor.name } but got ${objectResolvables.constructor.name}.`);
-				this._emitter.emit("remove", this.resolve(objectResolvables));
+				let object = this.resolve(objectResolvables);
 				this.delete(objectResolvables.id);
 			}
 		} else if (typeof objectResolvables == "string") {
-			this._emitter.emit("remove", this.resolve(objectResolvables));
+			let object = this.resolve(objectResolvables);
 			this.delete(objectResolvables);
+		} else if (objectResolvables == undefined) {
+			this.forEach((value, key, map) => {
+				this.delete(key);
+			});
 		}
-		return this;
 	}
 	resolve(objectResolvables) {
 		if (typeof objectResolvables == "array") {
@@ -81,6 +77,15 @@ class Collection extends Map {
 		} else if (objectResolvables == undefined) {
 			return undefined;
 		}
+	}
+	async every(condition) {
+		for (item of this) {
+			let output = await condition(item[1], item[0], this);
+			if (!output) {
+				return false;
+			}
+		}
+		return true;
 	}
 }
 
