@@ -12,9 +12,9 @@ class World extends AsyncEventEmitter {
 	constructor(options) {
 		super();
 		this.id = Utility.randomID(18);
-		this.guild;
 		this.bot;
-		if (!Utility.defined(options.bot.prefix)) throw new Error("No prefix specified in bot object.");
+		if (!Utility.defined(options.bot.prefix)) throw new Error("No prefix specified in bot object");
+		if (!Utility.defined(options.bot.token)) throw new Error("No token specified in bot object");
 		this.botPrefix = options.bot.prefix;
 		this.botToken = options.bot.token;
 		this.guild = options.guild;
@@ -28,6 +28,7 @@ class World extends AsyncEventEmitter {
 	async init() {
 		let Bot = new Discord.Client();
 		Bot.login(this.botToken);
+		debugger;
 		await new Promise((resolve, reject) => {
 			Bot.on("ready", () => {
 				console.log("Connected");
@@ -38,18 +39,32 @@ class World extends AsyncEventEmitter {
 		});
 		this.bot = Bot;
 		this.guild = Bot.guilds.resolve(this.guild);
+		if (this.guild == null) throw new Error ("Guild not found");
 	}
 	async generateAll() {
-		for (location of this.locations) {
+		for (let location of this.locations) {
 			await location[1].generate();
 		};
 		await this.emit("generated");
 	}
 	async ungenerateAll() {
-		for (location of this.locations) {
+		for (let location of this.locations) {
 			await location[1].ungenerate();
 		}
 		await this.emit("ungenerated");
+	}
+	async createLocation(name, options) {
+		let location = new Location(this, Utility.defined(options) ? {
+			name: name,
+			up: options.up,
+			down: options.down,
+			north: options.north,
+			south: options.south,
+			east: options.east,
+			west: options.west
+		} : { name: name })
+		location.init();
+		return location;
 	}
 }
 

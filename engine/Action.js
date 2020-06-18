@@ -4,7 +4,6 @@ var Utility = require("./Utility");
 class Action extends Base {
 	constructor(world, options) {
 		super(world);
-		if (!Utility.defined(options.mob)) throw new Error("Missing required option: mob");
 		this._mob = options.mob;
 		this._location = options.location;
 		this._actionString = options.actionString;
@@ -22,17 +21,19 @@ class Action extends Base {
 	get battle() {
 		return this._battle;
 	}
+	get actionString() {
+		return this._actionString;
+	}
 	init() {
 		this.world.actions.add(this);
 		if (Utility.defined(this.location)) this.location.actions.add(this);
-		this.mob.actions.add(this);
+		if (Utility.defined(this.mob)) this.mob.actions.add(this);
 		if (Utility.defined(this.battle)) this.battle.actions.add(this);
-		return this;
 	}
 	delete() {
 		this.world.actions.remove(this);
 		if (Utility.defined(this.location)) this.location.actions.remove(this);
-		this.mob.actions.remove(this);
+		if (Utlility.defined(this.mob)) this.mob.actions.remove(this);
 		if (Utility.defined(this.battle)) this.battle.actions.remove(this);
 	}
 }

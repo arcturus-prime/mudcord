@@ -6,8 +6,10 @@ class Monster extends Mob {
 		super(world, {
 			location: options.location,
 			name: options.name,
+			description: options.description,
 			battle: options.battle,
-			iconURL: options.iconURL
+			iconURL: options.iconURL,
+			actionsPerRound: options.actionsPerRound
 		});
 		if (Utility.defined(options.playerOwner)) throw new Error("No playerOwner object specified.")
 		this.playerOwner = this.world.mobs.resolve(options.playerOwner);
@@ -35,7 +37,6 @@ class Monster extends Mob {
 			_this: this,
 			condition: message => message.member == this.playerOwner.guildMember
 		});
-		return this;
 	}
 }
 module.exports = Monster;

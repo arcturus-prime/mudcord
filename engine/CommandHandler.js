@@ -25,7 +25,7 @@ class CommandHandler extends Base {
 	}
 	add(commands) {
 		if (typeof commands != "object") throw new Error("Requires one argument that must be an object");
-		for (prop in commands) {
+		for (let prop in commands) {
 			if (typeof commands[prop] != "function") throw new Error("Command value in key value pair must be a function");
 			this._commands[prop] = commands[prop];
 		}

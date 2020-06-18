@@ -9,6 +9,7 @@ class Player extends Mob {
 		super(world, {
 			location: options.location,
 			name: options.name,
+			description: options.description,
 			battle: options.battle,
 			iconURL: options.iconURL,
 			actionsPerRound: options.actionsPerRound
@@ -23,7 +24,6 @@ class Player extends Mob {
 	}
 
 	async init() {
-		await super.init();
 		this.on("changedLocation", async (oldLocation, newLocation) => {
 			if (Utility.defined(oldLocation)) {
 				if (oldLocation.generated) await this.guildMember.roles.remove(oldLocation.role);
@@ -35,6 +35,7 @@ class Player extends Mob {
 				}
 			}
 		});
+		await super.init();
 		this._commandHandler = new CommandHandler(this.world, {
 			commands: {
 				"a": async (args) => {
@@ -44,7 +45,6 @@ class Player extends Mob {
 			_this: this,
 			condition: message => message.member.id === this.guildMember.id
 		});
-		return this;
 	}
 }
 

@@ -14,19 +14,19 @@ class Location extends Base {
 		this._mobs = new Collection(Mob);
 		this._actions = new Collection(Action);
 		this._items = new Collection(Item);
-		this._battle = this.world.battles.resolve(options.battle);
+		this._battle;
 		this._role;
 		this._category;
 		this._textChannel;
 		this._voiceChannel;
 		this._spacerChannel;
 		this.name = options.name;
-		this._north = options.north;
-		this._south = options.south;
-		this._east = options.east;
-		this._west = options.west;
-		this._up = options.up;
-		this._down = options.down;
+		this._north = this.world.locations.resolve(options.north);
+		this._south = this.world.locations.resolve(options.south);
+		this._east = this.world.locations.resolve(options.east);
+		this._west = this.world.locations.resolve(options.west);
+		this._up = this.world.locations.resolve(options.up);
+		this._down = this.world.locations.resolve(options.down);
 		this._buttonNorth;
 		this._buttonSouth;
 		this._buttonEast;
@@ -105,18 +105,19 @@ class Location extends Base {
 		return this._buttonNorth;
 	}
 	//"build" function
-	async init() {
+	init() {
 		this.world.locations.add(this);
-		this.battle._location = this;
+		if (Utility.defined(this.battle)) this.battle._location = this;
 	}
 	//methods
 	async generate() {
-		this.role = await this.guild.roles.create({
+		if (this.generated) throw new Error("Location must not be generated to be generated");
+		this._role = await this.guild.roles.create({
 			data: {
 				name: this.name
 			}
 		});
-		this.category = await this.guild.channels.create(this.name, {
+		this._category = await this.guild.channels.create(this.name, {
 			type: "category",
 			permissionOverwrites: [{
 				id: this.role,
@@ -127,17 +128,17 @@ class Location extends Base {
 				deny: ["SEND_MESSAGES", "VIEW_CHANNEL", "CONNECT"]
 			}]
 		})
-		this.textChannel = await this.guild.channels.create("text", {
+		this._textChannel = await this.guild.channels.create("text", {
 			type: "text",
 			parent: this.category,
 			position: 1
 		})
-		this.voiceChannel = await this.guild.channels.create("voice", {
+		this._voiceChannel = await this.guild.channels.create("voice", {
 			type: "voice",
 			parent: this.category,
 			position: 2
-		})	
-		this.spacerChannel = await this.guild.channels.create("──────────────", {
+		})
+		this._spacerChannel = await this.guild.channels.create("──────────────", {
 			type: "voice",
 			parent: this.category,
 			permissionOverwrites: [{
@@ -150,11 +151,11 @@ class Location extends Base {
 			}],
 			position: 3
 		})
-		for (mob of this.mobs) {
+		for (let mob of this.mobs) {
 			if (mob[1] instanceof Player) {
 				await mob[1].guildMember.roles.add(this.role);
 				if (mob[1].guildMember.voice.speaking != null) {
-					await mob.[1]guildMember.voice.setChannel(this.voiceChannel);
+					await mob[1].guildMember.voice.setChannel(this.voiceChannel);
 				}
 				await this.textChannel.send({
 					embed: {
@@ -163,7 +164,7 @@ class Location extends Base {
 				});
 			}
 		}
-		this.generated = true;
+		this._generated = true;
 		await this.emit("generated");
 		if (Utility.defined(this.north)) await this.attach(this.north, "north");
 		if (Utility.defined(this.south)) await this.attach(this.south, "south");
@@ -173,6 +174,7 @@ class Location extends Base {
 		if (Utility.defined(this.up)) await this.attach(this.up, "up");
 	}
 	async ungenerate() {
+		if (!this.generated) throw new Error("Location must be generated to ungenerate");
 		if (Utility.defined(this.buttonDown)) await this.buttonDown.delete();
 		if (Utility.defined(this.buttonUp)) await this.buttonUp.delete();
 		if (Utility.defined(this.buttonWest)) await this.buttonWest.delete();
@@ -184,22 +186,64 @@ class Location extends Base {
 		if (Utility.defined(this.spacerChannel)) await this.spacerChannel.delete();
 		await this.category.delete();
 		await this.role.delete();
-		this.generated = false;
+		this._generated = false;
 		await this.emit("ungenerated");
 	}
 	async _registerAction(action) {
 		action._location = this;
 		this.actions.add(action);
 		await this.textChannel.send({
-	      embed: {
-	        author: {
-	          name: action.mob.name,
-	          iconURL: action.mob.iconURL
-	        },
-	        description: action.actionString
-	      }
-	    });
-	    await this.emit("actionTaken", action);
+			embed: {
+				author: {
+					name: action.mob.name,
+					iconURL: action.mob.iconURL
+				},
+				description: action.actionString
+			}
+		});
+		await this.emit("actionTaken", action);
+	}
+	async createBattle(name, options) {
+		let battle = new Battle(this.world, {
+			location: this,
+			name: name,
+			roundTimeLimit: Utility.defined(options) ? options.roundTimeLimit : undefined
+		});
+		battle.init();
+		return battle;
+	}
+	async createPlayer(name, options) {
+		let player = new Player(this.world, {
+			location: this,
+			name: name,
+			description: Utility.defined(options) ? options.description : undefined,
+			iconURL: Utility.defined(options) ? options.iconURL : undefined,
+			actionsPerRound: Utility.defined(options) ? options.actionsPerRound : undefined,
+			guildMember: Utility.defined(options) ? options.guildMember : undefined
+		});
+		await player.init();
+		return player;
+	}
+	async createMonster(name, options) {
+		let monster = new Monster(this.world, {
+			location: this,
+			name: name,
+			description: Utility.defined(options) ? options.description : undefined,
+			iconURL: Utility.defined(options) ? options.iconURL : undefined,
+			actionsPerRound: Utility.defined(options) ? options.actionsPerRound : undefined,
+			playerOwner: Utility.defined(options) ? options.playerOwner : undefined
+		});
+		await monster.init();
+		return monster;
+	}
+	async createItem(name, options) {
+		let item = new Item(this.world, {
+			location: this,
+			name: name,
+			description: Utility.defined(options) ? options.description : undefined,
+		})
+		item.init();
+		return item;
 	}
 	async attach(location, direction) {
 		if (!Utility.defined(location) || !Utility.defined(direction)) {
@@ -218,7 +262,7 @@ class Location extends Base {
 		}
 		this[`_${direction}`] = this.world.locations.resolve(location);
 		if (this.generated && Utility.defined(this[`_${direction}`])) {
-			let buttonString = `_button${direction.charAt(0).toUpperCase() + string.slice(1)}`;
+			let buttonString = `_button${direction.charAt(0).toUpperCase() + direction.slice(1)}`;
 			if (Utility.defined(this[buttonString])) await this[buttonString].delete();
 			if (location === null) return;
 			this[buttonString] = await this.guild.channels.create(this.north.name, {
@@ -238,7 +282,7 @@ class Location extends Base {
 			}
 		});
 	}
-	delete() {
+	async delete() {
 		this.mobs.remove();
 		this.items.remove();
 		this.actions.remove();
@@ -250,6 +294,7 @@ class Location extends Base {
 		await this.south.attach(null, "north");
 		await this.north.attach(null, "south");
 		this.world.locations.remove(this);
+		this._deleted = true;
 	}
 	static async _bindVCButtonToLocation(voiceChannel, location) {
 		if (!Utility.defined(location) || !Utility.defined(voiceChannel)) {
@@ -259,7 +304,7 @@ class Location extends Base {
 		let voiceStateFunc = async (oldState, newState) => {
 			if (voiceChannel.deleted) return;
 			if (newState.channel == location.guild.channels.resolve(voiceChannel)) {
-				for (mob of world.mobs) {
+				for (let mob of world.mobs) {
 					if (mob[1] instanceof Player) {
 						if (newState.member == world.guild.members.resolve(mob[1].guildMember)) {
 							mob[1].location = location;

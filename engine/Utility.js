@@ -15,7 +15,8 @@ class Utility {
 	}
 	static randomID(length) {
 		let buffer = Crypto.randomBytes(length);
-		return parseInt(buffer.toString("hex"), 10).toString();
+		let bufferHexString = buffer.toString("hex");
+		return bufferHexString;
 	}
 }
 
