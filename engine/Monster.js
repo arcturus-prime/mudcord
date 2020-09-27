@@ -7,12 +7,10 @@ const Utility = require("./Utility");
  * @param  {World} world - The world to create this monster in
  * @param  {Object} options - The options to create this monster with
  */
-function Monster(location, options) {
-	return (async () => {
-		await Mob.call(this, location.world, options);
-		return this;
-	})();
+class Monster extends Mob {
+	constructor(world, options) {
+		super(world, options);
+	}
 }
-Monster.prototype = Object.create(Mob.prototype);
 
 module.exports = Monster;

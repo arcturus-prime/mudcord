@@ -8,9 +8,9 @@ const Action = require("./Action");
  * Represents a mob (living entity)
  * @extends Base
  */
-function Mob(world, options) {
-	return (async () => {
-		Base.call(this, world);
+class Mob extends Base {
+	constructor(world, options) {
+		super(world);
 		/**
 		 * The name of this mob
 		 * @type {String}
@@ -57,87 +57,86 @@ function Mob(world, options) {
 		 * @type {Battle}
 		 */
 		this.battle = this.world.battles.resolve(options.battle);
-
-		if (this.location) await this.move(this.location);
-		if (this.battle) await this.battle.addMob(this);
-		return this;
-	})();
-}
-Mob.prototype = Object.create(Base.prototype);
-
-/**
- * Have this mob take an action
- * @param  {Action} action - An Action object
- * @return {Promise<Action>}
- * @async
- */
-Mob.prototype.action = async function (actionString) {
-	if (!actionString) throw new Error("Missing required option: actionString");
-	let action = new Action(this.world, actionString, {
-		mob: this,
-		location: this.location
-	});
-	this.actions.add(action);
-	if (this.battle) {
-		if (this.battle.mobs.resolve(this) && this.actionsTakenThisRound == this.actionsPerRound) {
-			await this.battle._registerAction(action);
-		}
 	}
-	await this.location._registerAction(action);
-	await this.emit("actionTaken", action);
-	return action;
-}
-/**
- * Move this mob to a location
- * @param  {LocationResolvable} locationResolvable - A resolvable of the location to move to
- * @return {Promise}
- * @async
- */
-Mob.prototype.move = async function (locationResolvable) {
-	let newLocation = this.world.locations.resolve(locationResolvable);
-	if (!newLocation) throw new Error("Missing required option: locationResolvable");
-	let currentLocation = this.location;
-	if (currentLocation) {
-		if (this.battle) await this.battle.removeMob(this);
-		currentLocation.mobs.remove(this);
-		this.location = undefined;
-		for (let item of this.items) {
-			item[1].location.items.remove(item[1]);
-			item[1].location = undefined;
-		}
-		if (currentLocation.generated) {
-			await currentLocation.textChannel.send({
-				embed: {
-					description: `${this.name} leaves.`
-				}
-			})
-		}
-		await currentLocation.emit("mobLeft", this);
+	/**
+	 * Spawns this mob into its location
+	 * @async
+	 * @returns {Promise<void>}
+	 */
+	async spawn() {
+		if(!this.location) throw new Error("A location is required to spawn.");
+		await this.move(this.location);
+		if (this.battle)
+			await this.battle.addMob(this);
 	}
-	newLocation.mobs.add(this);
-	this.location = newLocation;
-	for (let item of this.items) {
-		item[1].location.items.add(item[1]);
-		item[1].location = newLocation;
-	}
-	if (newLocation.generated) {
-		await newLocation.textChannel.send({
-			embed: {
-				description: `${this.name} enters.`
+	/**
+	 * Have this mob take an action
+	 * @param  {Action} action - An Action object
+	 * @return {Promise<Action>}
+	 * @async
+	 */
+	async action(actionString) {
+		if (!actionString)
+			throw new Error("Missing required option: actionString");
+		let action = new Action(this.world, actionString, {
+			mob: this,
+			location: this.location
+		});
+		this.actions.add(action);
+		if (this.battle) {
+			if (this.battle.mobs.resolve(this) && this.actionsTakenThisRound == this.actionsPerRound) {
+				await this.battle._registerAction(action);
 			}
-		})
+		}
+		await this.location._registerAction(action);
+		await this.emit("actionTaken", action);
+		return action;
 	}
-	await newLocation.emit("mobJoined", this);
-	await this.emit("changedLocation", currentLocation, newLocation);
-}
-/**
- * Delete this mob
- * @return {void}
- */
-Mob.prototype.delete = function () {
-	this.battle.mobs.remove(this);
-	this.location.mobs.remove(this);
-	this.world.mobs.remove(this);
+	/**
+	 * Move this mob to a location
+	 * @param  {LocationResolvable} locationResolvable - A resolvable of the location to move to
+	 * @return {Promise}
+	 * @async
+	 */
+	async move(locationResolvable) {
+		let newLocation = this.world.locations.resolve(locationResolvable);
+		if (!newLocation)
+			throw new Error("Missing required option: locationResolvable");
+		let currentLocation = this.location;
+		if (currentLocation) {
+			if (this.battle)
+				await this.battle.removeMob(this);
+			currentLocation.mobs.remove(this);
+			this.location = undefined;
+			for (let item of this.items) {
+				item[1].location.items.remove(item[1]);
+				item[1].location = undefined;
+			}
+			if (currentLocation.generated) {
+				await currentLocation.textChannel.send({
+					embed: {
+						description: `${this.name} leaves.`
+					}
+				});
+			}
+			await currentLocation.emit("mobLeft", this);
+		}
+		newLocation.mobs.add(this);
+		this.location = newLocation;
+		for (let item of this.items) {
+			item[1].location.items.add(item[1]);
+			item[1].location = newLocation;
+		}
+		if (newLocation.generated) {
+			await newLocation.textChannel.send({
+				embed: {
+					description: `${this.name} enters.`
+				}
+			});
+		}
+		await newLocation.emit("mobJoined", this);
+		await this.emit("changedLocation", currentLocation, newLocation);
+	}
 }
 
 module.exports = Mob;

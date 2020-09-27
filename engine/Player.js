@@ -1,6 +1,7 @@
 const Base = require("./Base");
 const Utility = require("./Utility");
 const Action = require("./Action");
+const { GuildMember } = require("discord.js");
 const CommandHandler = require("./CommandHandler");
 const Mob = require("./Mob");
 
@@ -11,11 +12,12 @@ const Mob = require("./Mob");
  * @param  {World} world - The world to create the player in
  * @param  {Object} options - The options to create the player with
  */
-function Player(world, options) {
-	return (async () => {
-		if (!options.guildMember) throw new error("No guildMember object specified.");
+class Player extends Mob {
+	constructor(world, options) {
+		if (!options.guildMember)
+			throw new error("No guildMember object specified.");
 
-		await Mob.call(this, world, options);
+		super(world, options);
 		/**
 		 * The GuildMember that this player is attached to
 		 * @type {GuildMember}
@@ -35,18 +37,18 @@ function Player(world, options) {
 
 		this.on("changedLocation", async (oldLocation, newLocation) => {
 			if (oldLocation) {
-				if (oldLocation.generated) await this.guildMember.roles.remove(oldLocation.role);
+				if (oldLocation.generated)
+					await this.guildMember.roles.remove(oldLocation.role);
 			}
 			if (newLocation) {
 				if (newLocation.generated) {
 					await this.guildMember.roles.add(newLocation.role);
-					if (this.guildMember.voice.channel != undefined) await this.guildMember.voice.setChannel(newLocation.voiceChannel);
+					if (this.guildMember.voice.channel != undefined)
+						await this.guildMember.voice.setChannel(newLocation.voiceChannel);
 				}
 			}
 		});
-		return this;
-	})();
+	}
 }
-Player.prototype = Object.create(Mob.prototype);
 
 module.exports = Player;
