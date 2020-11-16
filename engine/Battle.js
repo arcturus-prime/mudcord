@@ -1,7 +1,7 @@
 const Base = require("./Base");
 const Collection = require("./Collection");
 const Action = require("./Action");
-const Utility = require("./Utility");
+const utility = require("./utility");
 const Mob = require("./Mob");
 
 /**
@@ -11,6 +11,10 @@ const Mob = require("./Mob");
  * @param {Object} options - The options to create this battle with
  */
 class Battle extends Base {
+	static BATTLE_ACTION_REGISTER_ERROR = class BATTLE_ACTION_REGISTER_ERROR extends Error { };
+	static BATTLE_REMOVE_MOB_ERROR = class BATTLE_REMOVE_MOB_ERROR extends Error { };
+	static BATTLE_ADD_MOB_ERROR = class BATTLE_ADD_MOB_ERROR extends Error { };
+	static BATTLE_START_ERROR = class BATTLE_START_ERROR extends Error { };
 	constructor(world, options = {}) {
 		super(world);
 		/**
@@ -56,10 +60,11 @@ class Battle extends Base {
 	/**
 	 * Starts this battle
 	 * @async
+	 * @public
 	 * @returns {Promise<void>}
 	 */
 	async start() {
-		if(!this.location) throw new Error("A location is required to start this battle.");
+		if (!this.location) throw new BATTLE_START_ERROR("A location is required to start this battle.");
 		this.location.battle = this;
 		await this.location.textChannel.send({
 			embed: {
@@ -73,15 +78,14 @@ class Battle extends Base {
 	/**
 	 * Adds a mob to this battle
 	 * @async
+	 * @public
 	 * @param {MobResolvable} mobResolvable
 	 * @returns {Promise<void>}
 	 */
 	async addMob(mobResolvable) {
 		let mob = this.world.mobs.resolve(mobResolvable);
-		if (!mob)
-			throw new Error("Missing required option: mobResolvable");
-		if (mob.location != this.location)
-			await mob.move(this.location);
+		if (!mob) throw new BATTLE_ADD_MOB_ERROR("Missing required option: mobResolvable");
+		if (mob.location != this.location) await mob.move(this.location);
 		this.mobs.add(mob);
 		mob.battle = this;
 		if (this.started) {
@@ -100,13 +104,13 @@ class Battle extends Base {
 	/**
 	 * Removes a mob from this battle
 	 * @async
+	 * @public
 	 * @param {MobResolvable} mobResolvable
 	 * @returns {Promise<void>}
 	 */
 	async removeMob(mobResolvable) {
 		let mob = this.world.mobs.resolve(mobResolvable);
-		if (!mob)
-			throw new Error("Missing required option: mobResolvable");
+		if (!mob) throw new BATTLE_REMOVE_MOB_ERROR("Missing required option: mobResolvable");
 		this.mobs.remove(mob);
 		mob.battle = undefined;
 		if (this.started) {
@@ -125,6 +129,7 @@ class Battle extends Base {
 	/**
 	 * Ends this battle
 	 * @async
+	 * @public
 	 * @returns {Promise<void>}
 	 */
 	async end() {
@@ -141,7 +146,14 @@ class Battle extends Base {
 		this.started = false;
 		await this.emit("end");
 	}
+	/**
+	 * @private
+	 * @param {Action} action 
+	 * @async
+	 * @returns {Promise<Boolean>}
+	 */
 	async _registerAction(action) {
+		if (action.mob.actionsTakenThisRound == action.mob.actionsPerRound) throw new BATTLE_ACTION_REGISTER_ERROR("Mob has already taken all their actions this round");
 		action.battle = this;
 		this.actions.add(action);
 		action.mob.actionsTakenThisRound++;
@@ -151,6 +163,11 @@ class Battle extends Base {
 		}
 		return true;
 	}
+	/**
+	 * @private
+	 * @async
+	 * @returns {Promise<void>}
+	 */
 	async _endRound() {
 		clearTimeout(this._currentTimeout);
 		for (let mob of this.mobs) {

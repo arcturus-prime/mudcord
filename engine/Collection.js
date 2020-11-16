@@ -1,11 +1,10 @@
 /**
  * A Map with some extra functions where the ID is used as an identifier
  * @extends {Map}
+ * @public
+ * @param  {Class} type - The class that this collection is for
  */
 class Collection extends Map {
-	/**
-	 * @param  {Class} type - The class that this collection is for
-	 */
 	constructor(type) {
 		super();
 		this.type = type;

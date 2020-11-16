@@ -1,9 +1,10 @@
 const Base = require("./Base");
-const Utility = require("./Utility");
+const utility = require("./utility");
 
 /**
  * Represents an action performed by a mob entity
  * @extends {Base}
+ * @hideconstructor
  * @param  {World} world - The world in which this action should be performed
  * @param  {String} string - The string describing this action
  */

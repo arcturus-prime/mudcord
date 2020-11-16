@@ -1,21 +1,23 @@
 const Collection = require("./engine/Collection");
 const Battle = require("./engine/Battle");
-const Item = require("./engine/Item");
 const Location = require("./engine/Location");
 const Player = require("./engine/Player");
 const World = require("./engine/World");
-const Utility = require("./engine/Utility");
+const utility = require("./engine/utility");
 const Monster = require("./engine/Monster");
+const Action = require("./engine/Action");
+const Base = require("./engine/Base");
 const CommandHandler = require("./engine/CommandHandler");
 
 module.exports = {
     Collection,
     Battle,
-    Item,
     Location,
     Player,
     World,
-    Utility,
+    utility,
     Monster,
-    CommandHandler
+    CommandHandler,
+    Action,
+    Base
 };
